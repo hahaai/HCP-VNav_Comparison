@@ -4,9 +4,13 @@ This analysis runs test-retest reliability (ICC) on HCP and VNav sequence.
 ## 1. Data organization and preparation.
 
 1.1 Brain extraction using 3dSkullstrip
+
 1.2 nu correction and N4 intensition normalization
+
 1.3.1 Registrion to standard using flirt and fnirt, save all the transformation and warp files
+
 1.3.2 Get potial volume estimates (PVE) using fast on images in subject space
+
 1.4 Register PVE to standard space using pre=saved warp files.
 
 Note: 1.3.1 and 1.3.2 run on the output of 1.2 and can run independently.
