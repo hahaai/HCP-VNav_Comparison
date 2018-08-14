@@ -102,18 +102,27 @@ for sub in $(ls $datain);do
     # N4BiasFieldCorrection -d 3 -i brain_nu.nii.gz -o brain_nuN4.nii.gz;
 
     if [[ ! -f $outdir'/HCP_brain.nii.gz' ]] | [[ ! -f $outdir'/VNav_brain.nii.gz' ]];then
-        echo "3dSkullStrip -input $HCP -prefix $outdir/HCP_brain.nii.gz -orig_vol; mri_nu_correct.mni --i $outdir/HCP_brain.nii.gz --o $outdir/HCP_brain_nu.nii.gz --n 6 --proto-iters 150 --stop .0001; N4BiasFieldCorrection -d 3 -i $outdir/HCP_brain_nu.nii.gz -o $outdir/HCP_brain_nuN4.nii.gz" >> $brain_extraction_commnad
-        echo "3dSkullStrip -input $VNav -prefix $outdir/VNav_brain.nii.gz -orig_vol; mri_nu_correct.mni --i $outdir/VNav_brain.nii.gz --o $outdir/VNav_brain_nu.nii.gz --n 6 --proto-iters 150 --stop .0001; N4BiasFieldCorrection -d 3 -i $outdir/VNav_brain_nu.nii.gz -o $outdir/VNav_brain_nuN4.nii.gz" >> $brain_extraction_commnad
+        echo "mri_nu_correct.mni --i $HCP --o $outdir/HCP_nu.nii.gz --n 6 --proto-iters 150 --stop .0001; N4BiasFieldCorrection -d 3 -i $outdir/HCP_nu.nii.gz -o $outdir/HCP_nuN4.nii.gz; 3dSkullStrip -input $outdir/HCP_nuN4.nii.gz -prefix $outdir/HCP_brain_nuN4.nii.gz -orig_vol;"  >> $brain_extraction_commnad
+
+        echo "mri_nu_correct.mni --i $VNav --o $outdir/VNav_nu.nii.gz --n 6 --proto-iters 150 --stop .0001; N4BiasFieldCorrection -d 3 -i $outdir/VNav_nu.nii.gz -o $outdir/VNav_nuN4.nii.gz; 3dSkullStrip -input $outdir/VNav_nuN4.nii.gz -prefix $outdir/VNav_brain_nuN4.nii.gz -orig_vol;"  >> $brain_extraction_commnad
+
     fi
     
 
     HCP_brain=$outdir'/HCP_brain_nuN4.nii.gz'
     VNav_brain=$outdir'/VNav_brain_nuN4.nii.gz'
 
-    # flirt and fnirt
-    echo "flirt -ref ${FSLDIR}/data/standard/MNI152_T1_2mm_brain -in $HCP_brain -omat $outdir/HCP2std_flirt.mat; fnirt --in=$HCP_brain --aff=$outdir/HCP2std_flirt.mat --cout=$outdir/HCP2std_nonlinear_transf --config=T1_2_MNI152_2mm; applywarp --ref=${FSLDIR}/data/standard/MNI152_T1_2mm --in=$HCP_brain --warp=$outdir/HCP2std_nonlinear_transf --out=$outdir/HCP2std.nii.gz" >> $flirt_fnirt_commnad
 
-    echo "flirt -ref ${FSLDIR}/data/standard/MNI152_T1_2mm_brain -in $VNav_brain -omat $outdir/VNav2std_flirt.mat; fnirt --in=$VNav_brain --aff=$outdir/VNav2std_flirt.mat --cout=$outdir/VNav2std_nonlinear_transf --config=T1_2_MNI152_2mm; applywarp --ref=${FSLDIR}/data/standard/MNI152_T1_2mm --in=$VNav_brain --warp=$outdir/VNav2std_nonlinear_transf --out=$outdir/VNav2std.nii.gz" >> $flirt_fnirt_commnad
+    HCP_head=$outdir'/HCP_nuN4.nii.gz'
+    VNav_head=$outdir'/VNav_nuN4.nii.gz'
+
+
+    # flirt and fnirt
+    echo "flirt -ref ${FSLDIR}/data/standard/MNI152_T1_2mm_brain -in $HCP_brain -omat $outdir/HCP2std_flirt.mat; fnirt --in=$HCP_head --aff=$outdir/HCP2std_flirt.mat --cout=$outdir/HCP2std_nonlinear_transf --config=T1_2_MNI152_2mm; applywarp --ref=${FSLDIR}/data/standard/MNI152_T1_2mm_brain --in=$HCP_brain --warp=$outdir/HCP2std_nonlinear_transf --out=$outdir/HCP2std.nii.gz" >> $flirt_fnirt_commnad
+
+    
+    echo "flirt -ref ${FSLDIR}/data/standard/MNI152_T1_2mm_brain -in $VNav_brain -omat $outdir/VNav2std_flirt.mat; fnirt --in=$VNav_head --aff=$outdir/VNav2std_flirt.mat --cout=$outdir/VNav2std_nonlinear_transf --config=T1_2_MNI152_2mm; applywarp --ref=${FSLDIR}/data/standard/MNI152_T1_2mm_brain --in=$VNav_brain --warp=$outdir/VNav2std_nonlinear_transf --out=$outdir/VNav2std.nii.gz" >> $flirt_fnirt_commnad
+    #echo "fnirt --in=$VNav --aff=$outdir/VNav2std_flirt.mat --cout=$outdir/VNav2std_nonlinear_transf --config=T1_2_MNI152_2mm; applywarp --ref=${FSLDIR}/data/standard/MNI152_T1_2mm --in=$VNav_brain --warp=$outdir/VNav2std_nonlinear_transf --out=$outdir/VNav2std.nii.gz" >> $flirt_fnirt_commnad
 
     # FAST on 
     echo "fast $HCP_brain" >> $pve_commnad
@@ -122,11 +131,58 @@ for sub in $(ls $datain);do
 done
 
 
+### apply the warp file to PVE1.
+#applywarp --ref=${FSLDIR}/data/standard/MNI152_T1_2mm --in=$VNav_brain --warp=$outdir/VNav2std_nonlinear_transf --out=$outdir/VNav2std.nii.gz"
+#/data2/Projects/Lei/HCP_VNav_comparision/data/sub-5007372/std_pve/HCP_brain_nuN4_pve_0.nii.gz
+# /data2/Projects/Lei/HCP_VNav_comparision/data/sub-5007372/std_pve/HCP2std_nonlinear_transf.nii.gz
+
+datain='/data2/Projects/Lei/HCP_VNav_comparision/data'
+pve_to_std='/data2/Projects/Lei/HCP_VNav_comparision/scripts/pve2std_commands.txt'
+rm $pve_to_std
+
+for sub in $(ls $datain);do
+    for type in HCP VNav;do 
+        warp=$datain'/'$sub'/std_pve/'$type'2std_nonlinear_transf.nii.gz'
+        for pvenum in 0 1 2;do
+            pve=$datain'/'$sub'/std_pve/'$type'_brain_nuN4_pve_'$pvenum'.nii.gz'
+            echo "applywarp --ref=${FSLDIR}/data/standard/MNI152_T1_2mm --in=$pve --warp=$warp --out=${pve/.nii.gz/_std.nii.gz}" >> $pve_to_std
+        done
+    done
+done
+
+
 ### 
  #bet my_structural my_betted_structural
  #flirt -ref ${FSLDIR}/data/standard/MNI152_T1_2mm_brain -in my_betted_structural -omat my_affine_transf.mat
  #fnirt --in=my_structural --aff=my_affine_transf.mat --cout=my_nonlinear_transf --config=T1_2_MNI152_2mm
  #applywarp --ref=${FSLDIR}/data/standard/MNI152_T1_2mm --in=my_structural --warp=my_nonlinear_transf --out=my_warped_structural
+
+
+
+
+##### doing ANTs registration, save warp file and transformation.
+#Sample running:
+# /data2/Projects/Lei/HCP_VNav_comparision/scripts/ants_registration.sh /usr/share/fsl/data/standard/MNI152_T1_2mm.nii.gz /data2/Projects/Lei/HCP_VNav_comparision/scripts/ANTs_test/HCP.nii.gz forproduction
+# The ants sample scripts needs to be in the directory where to save to outfiles, otherwise, it will just save in the current directory.
+
+datain='/data2/Projects/Lei/HCP_VNav_comparision/data'
+ANTs_commnad='/data2/Projects/Lei/HCP_VNav_comparision/scripts/anats_commands.txt'
+rm $ANTs_commnad
+
+for sub in $(ls $datain);do
+    echo $sub
+    HCP=$datain'/'$sub'/HCP.nii.gz'
+    VNav=$datain'/'$sub'/VNav.nii.gz'
+    outdir=$datain'/'$sub'/ANTs_std' 
+    mkdir $outdir
+    echo "cd $outdir; /data2/Projects/Lei/HCP_VNav_comparision/scripts/ants_registration.sh /usr/share/fsl/data/standard/MNI152_T1_2mm.nii.gz $HCP forproduction" >> $ANTs_commnad
+    echo "cd $outdir; /data2/Projects/Lei/HCP_VNav_comparision/scripts/ants_registration.sh /usr/share/fsl/data/standard/MNI152_T1_2mm.nii.gz $VNav forproduction" >> $ANTs_commnad
+done
+
+cat /data2/Projects/Lei/HCP_VNav_comparision/scripts/anats_commands.txt | wc -l 15
+
+
+
 
 
 
